@@ -1,6 +1,7 @@
 package com.oussama.marketvisualizer;
 
 import javafx.application.Application;
+import javafx.css.converter.PaintConverter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -47,7 +48,9 @@ public class MarketVisualizer extends Application {
     public void start(Stage primaryStage) {
         Dashboard dashboard = new Dashboard();
         Scene scene = new Scene(dashboard.getRoot(), 1000, 700);
-        scene.getStylesheets().add(getClass().getResource("/styles/global.css").toExternalForm());
+
+        scene.getStylesheets().add(getClass().getResource("/styles/candlestick.css").toExternalForm());
+
 
         primaryStage.setTitle("Market Visualizer");
         primaryStage.setScene(scene);

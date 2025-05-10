@@ -1,0 +1,35 @@
+
+
+.chart {
+    -fx-background-color: transparent;
+}
+
+.chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+.chart-horizontal-grid-lines, .chart-vertical-grid-lines {
+    -fx-stroke: #201e19;
+    -fx-stroke-dash-array: none;
+    -fx-stroke-width: 1px;
+}
+
+
+
+.axis {
+    -fx-font-size: 1.4em;    
+    -fx-tick-label-fill: #fff;
+    -fx-font-family: Tahoma;
+    -fx-tick-length: 0;
+    -fx-minor-tick-length: 0;
+    -fx-border-color: #000;
+}
+ 
+
+.axis .tick-mark {
+    -fx-stroke: transparent;
+}
+
+.axis .axis-line {
+    -fx-stroke: transparent;
+}
