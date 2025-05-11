@@ -27,18 +27,32 @@ import java.util.List;
 import java.util.Random;
 
 public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number> {
+      
+    
+    /*
+     * 
+     * PUBLIC FUNCTION
+     * 
+     * I WIILL CALL IT THE API OF THIS CLASS 
+     * 
+     */
 
-    private final String DARK_BACKGROUND = "#161625";
-    private final String GRID_LINE_COLOR = "#ff0000";
-    private final String TEXT_COLOR = "#FFFFFF";
-    private final String UP_COLOR = "#26A69A";
-    private final String DOWN_COLOR = "#EF5350";
+    public void setTimeRange( String T) {
+        timeRange = T;
+    }
 
-    private final Random random = new Random();
-        
-    public CandlestickChart() {
+
+    /*
+     * 
+     * CONSTRUCTOR
+     * 
+     */
+
+    public CandlestickChart( String T) {
 
         super(new CategoryAxis(), new NumberAxis());
+
+        timeRange = T;
 
         Axis<String> xAxis = getXAxis();
         Axis<Number> yAxis = getYAxis();
@@ -193,4 +207,22 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         public double getLow() { return low; }
         public double getClose() { return close; }
     }
+
+
+    /* 
+     * 
+     * PRIVATE FIELDS
+     * 
+     */
+
+    private final String DARK_BACKGROUND = "#161625";
+    private final String GRID_LINE_COLOR = "#ff0000";
+    private final String TEXT_COLOR = "#FFFFFF";
+    private final String UP_COLOR = "#26A69A";
+    private final String DOWN_COLOR = "#EF5350";
+
+    private final Random random = new Random();
+
+    private String timeRange;
+
 }

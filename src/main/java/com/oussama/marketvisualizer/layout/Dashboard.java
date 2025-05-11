@@ -3,6 +3,7 @@ package com.oussama.marketvisualizer.layout;
 import com.oussama.marketvisualizer.components.CandlestickChart;
 import com.oussama.marketvisualizer.components.Footer;
 import com.oussama.marketvisualizer.components.Header;
+import com.oussama.marketvisualizer.components.MainView;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -76,7 +77,7 @@ public class Dashboard {
         mainArea = new VBox();
         mainArea.setAlignment(Pos.CENTER);
 
-        CandlestickChart mainChart = new CandlestickChart();
+        VBox mainChart = new MainView();
 
         VBox.setVgrow(mainChart, Priority.ALWAYS);
     

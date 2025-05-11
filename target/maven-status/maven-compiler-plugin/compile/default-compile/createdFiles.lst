@@ -6,6 +6,7 @@ com/oussama/marketvisualizer/components/Footer.class
 com/oussama/marketvisualizer/components/CandlestickChart$CandleData.class
 com/oussama/marketvisualizer/MarketVisualizer.class
 com/oussama/marketvisualizer/layout/Dashboard.class
+com/oussama/marketvisualizer/components/MainView.class
 com/oussama/marketvisualizer/components/Header.class
 com/oussama/App$MarketData.class
 com/oussama/marketvisualizer/components/Header$1.class
