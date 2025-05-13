@@ -17,8 +17,8 @@ public class MainView extends VBox {
     private final CandlestickChart chart;
     private final HBox bottomBar;
     
-    private static final List<String> TIME_RANGES = List.of("1D", "5D", "2W", "3M", "6M");
-    private String selectedTimeRange = "1D";
+    private static final List<String> TIME_RANGES = List.of("1M", "5M", "15M", "30M", "60M", "1D");
+    private String selectedTimeRange = "1M";
 
     public void setSelectedTimeRange( String tr) {
         if (TIME_RANGES.contains(tr)) {
@@ -58,7 +58,7 @@ public class MainView extends VBox {
 
         // THE MAIN CHART PLACEMENT
 
-        chart = new CandlestickChart(selectedTimeRange);
+        chart = new CandlestickChart(selectedTimeRange, "IBM");
 
         // THE BOTTOM BAR THAT WILL CONTAIN MAINLY THE BUTTONS TO SWITCH TIME CONSTRAINT ON THE CHART
 
@@ -136,7 +136,6 @@ public class MainView extends VBox {
                 if (e.getButton() == MouseButton.PRIMARY) {
                     // select if not selected
                     if (label != selectedTimeRange) {
-                        System.out.println("changing time range");
                         b.setStyle(
                             "-fx-background-color: #333333;"+
                             "-fx-text-fill: #ff9900;" + 

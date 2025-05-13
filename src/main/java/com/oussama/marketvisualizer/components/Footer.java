@@ -24,8 +24,7 @@ public class Footer extends HBox {
         leftSide.setSpacing(15);
         leftSide.setAlignment(Pos.CENTER_LEFT);
         
-        Label statusLabel = new Label("Connected");
-        statusLabel.setTextFill(Color.web("#00cc00"));
+        Label statusLabel = new ConnectionChecker();
         
         leftSide.getChildren().add(statusLabel);
         

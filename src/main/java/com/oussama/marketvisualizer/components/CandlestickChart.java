@@ -22,9 +22,18 @@ import javafx.scene.control.ToggleGroup;
 import javafx.stage.Stage;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
+
+import org.json.JSONObject;
 
 public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number> {
       
@@ -37,8 +46,12 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
      * 
      */
 
-    public void setTimeRange( String T) {
-        timeRange = T;
+    public void setTimeRange( String t) {
+        timeRange = t;
+    }
+
+    public void setSymbol( String s) {
+        symbol = s;
     }
 
 
@@ -48,11 +61,13 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
      * 
      */
 
-    public CandlestickChart( String T) {
+    public CandlestickChart( String tr, String symb) {
 
         super(new CategoryAxis(), new NumberAxis());
 
-        timeRange = T;
+        setLegendVisible(false);
+        timeRange = tr;
+        symbol = symb;
 
         Axis<String> xAxis = getXAxis();
         Axis<Number> yAxis = getYAxis();
@@ -64,9 +79,8 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         yAxis.setTickMarkVisible(false);
         yAxis.setSide(javafx.geometry.Side.RIGHT);
 
-        addSampleCandlestickData(this);
+        storeData();
         layoutPlotChildren();
-        setLegendVisible(false);
     }
 
     
@@ -85,30 +99,130 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         setData(data);
     }
 
-    private void addSampleCandlestickData(CandlestickChart chart) {
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
+    private void storeData() {
+
+        // XYChart.Series<String, Number> series = new XYChart.Series<>();
         
-        // Generate sample data similar to Bitcoin prices around $7800-$8000
-        double basePrice = 7800.0;
+        if (timeRange == null) {
+            System.err.println("Warning: timeRange is null");
+            this.setData(new ArrayList<>());
+            return;
+        }
+    
+
         List<CandleData> candleDataList = new ArrayList<>();
+
+        switch (timeRange) {
+            case "1M":
+                candleDataList = fetchData("1min");
+                break;
+
+            case "5M":
+                candleDataList = fetchData("5min");
+                break;
+
+            case "15M":
+                candleDataList = fetchData("15min");
+                break;
         
-        for (int i = 0; i < 48; i++) {
-            double open = basePrice + random.nextDouble() * 200 - 100;
-            double close = open + random.nextDouble() * 80 - 40;
-            double high = Math.max(open, close) + random.nextDouble() * 50;
-            double low = Math.min(open, close) - random.nextDouble() * 50;
+            case "30M":
+                candleDataList = fetchData("30min");         
+                break;
             
-            String timeLabel = String.format("%02d:00", (i % 24));
+            case "60M":
+                candleDataList = fetchData("60min");
+                break;
             
-            candleDataList.add(new CandleData(timeLabel, open, high, low, close));
-            
-            // Simulate some trend
-            basePrice = close;
+            case "1D":
+                candleDataList = fetchData("1day");
+                break;
+
+            default:
+                break;
         }
         
-        chart.setData(candleDataList);
+        this.setData(candleDataList);
     }
     
+    private List<CandleData> fetchData(String timeRange) {
+
+        try {
+
+            List<CandleData> candleDataList = new ArrayList<>();
+
+
+            String apiKey = "2G59I82BETK10186";
+
+            String apiUrl = "https://www.alphavantage.co/query" +
+                "?function=TIME_SERIES_INTRADAY" +
+                "&symbol=" + symbol +
+                "&month=2009-01" +
+                "&interval=" + timeRange +
+                "&extended_hours=false" +
+                "&outputsize=compact" +
+                "&apikey=" + apiKey;
+            
+            URL url = new URL(apiUrl);
+
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000); // 10 seconds timeout
+            connection.setReadTimeout(10000);
+            
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+
+                StringBuilder response = new StringBuilder();
+                Scanner scanner = new Scanner(connection.getInputStream());
+                while (scanner.hasNextLine()) {
+                    response.append(scanner.nextLine());
+                }
+                scanner.close();
+
+                JSONObject jsonResponse = new JSONObject(response.toString());
+
+                if (jsonResponse.has("Error Message")) {
+                    throw new IOException("API Error: " + jsonResponse.getString("Error Message"));
+                }
+
+                System.out.println(jsonResponse);
+
+                JSONObject timeSeries = jsonResponse.getJSONObject("Time Series (" + timeRange + ")");
+
+                for (Object timestampObj : timeSeries.keySet()) {
+                    
+                    String timestamp = (String) timestampObj;
+                    
+                    JSONObject candleData = timeSeries.getJSONObject(timestamp);
+                    
+                    // Extract OHLCV data
+                    double open = Double.parseDouble(candleData.getString("1. open"));
+                    double high = Double.parseDouble(candleData.getString("2. high"));
+                    double low = Double.parseDouble(candleData.getString("3. low"));
+                    double close = Double.parseDouble(candleData.getString("4. close"));
+                    long volume = Long.parseLong(candleData.getString("5. volume"));
+                    
+                    // Format the timestamp for display
+                    DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    LocalDateTime dateTime = LocalDateTime.parse(timestamp, inputFormatter);
+                    String timeLabel = dateTime.format(DateTimeFormatter.ofPattern("MM-dd HH:mm"));
+                    
+                    // Create and add CandleData
+                    candleDataList.add(new CandleData(timeLabel, open, high, low, close, volume));
+                }
+
+                return candleDataList;
+            } else {
+                throw new IOException("HTTP Error: " + responseCode);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
+
+    }
+
     @Override
     protected void layoutPlotChildren() {
 
@@ -164,10 +278,22 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
 
         // i will set the bounds here 
         NumberAxis yAxis = (NumberAxis) getYAxis();
-        yAxis.setAutoRanging(false); 
-        yAxis.setLowerBound(min-100);     
-        yAxis.setUpperBound(max+100);
+        yAxis.setAutoRanging(false);
+        // I ADDED AND SUBSTRUCTED 5 TO GET A SMALL PADDING FROM THE SIDES IN CASE OF MIN OR MAX BEING ALREADY A MULTIPLE OF 100
+        yAxis.setLowerBound(Math.floor((min - 5) / 100.0) * 100);     
+        yAxis.setUpperBound(Math.ceil((max + 5) / 100.0) * 100);
         yAxis.setTickUnit(100);
+        yAxis.setTickLabelFormatter(new javafx.util.StringConverter<Number>() {
+            @Override
+            public String toString(Number value) {
+                return String.format("%.2f", value.doubleValue());
+            }
+        
+            @Override
+            public Number fromString(String string) {
+                return Double.parseDouble(string);
+            }
+        });
     }
     
     @Override
@@ -192,13 +318,15 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         private final double high;
         private final double low;
         private final double close;
+        private final long volume;
         
-        public CandleData(String timeLabel, double open, double high, double low, double close) {
+        public CandleData(String timeLabel, double open, double high, double low, double close, long volume) {
             this.timeLabel = timeLabel;
             this.open = open;
             this.high = high;
             this.low = low;
             this.close = close;
+            this.volume = volume;
         }
         
         public String getTimeLabel() { return timeLabel; }
@@ -206,6 +334,7 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         public double getHigh() { return high; }
         public double getLow() { return low; }
         public double getClose() { return close; }
+        public long getVolume() { return volume; }
     }
 
 
@@ -224,5 +353,6 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
     private final Random random = new Random();
 
     private String timeRange;
+    private String symbol;
 
 }
