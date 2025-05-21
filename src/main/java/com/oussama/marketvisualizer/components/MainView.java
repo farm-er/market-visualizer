@@ -17,8 +17,10 @@ public class MainView extends VBox {
     private final CandlestickChart chart;
     private final HBox bottomBar;
     
-    private static final List<String> TIME_RANGES = List.of("1M", "5M", "15M", "30M", "60M", "1D");
-    private String selectedTimeRange = "1M";
+    private static final List<String> TIME_RANGES = List.of("1M", "3M", "6M", "1Y");
+    private static final List<String> CANDLE_TIME_RANGES = List.of("Daily", "Weekly", "Monthly");
+    private String selectedTimeRange = TIME_RANGES.get(0);
+    private String selectedCandleTimeRange = CANDLE_TIME_RANGES.get(0);
 
     public void setSelectedTimeRange( String tr) {
         if (TIME_RANGES.contains(tr)) {
@@ -58,11 +60,9 @@ public class MainView extends VBox {
 
         // THE MAIN CHART PLACEMENT
 
-        chart = new CandlestickChart(selectedTimeRange, "IBM");
+        chart = new CandlestickChart( selectedTimeRange, selectedCandleTimeRange, "IBM");
 
         // THE BOTTOM BAR THAT WILL CONTAIN MAINLY THE BUTTONS TO SWITCH TIME CONSTRAINT ON THE CHART
-
-        
 
         bottomBar = new HBox();
         bottomBar.setSpacing(15);
@@ -76,8 +76,16 @@ public class MainView extends VBox {
         for (String time : TIME_RANGES) {
             timeArray.getChildren().add(createTimeButton(time, chart));
         }
+
+        HBox candleTimeArray = new HBox();
+        candleTimeArray.setSpacing(15);
+        candleTimeArray.setAlignment(Pos.CENTER_LEFT);
+
+        for (String time : CANDLE_TIME_RANGES) {
+            candleTimeArray.getChildren().add(createTimeButton(time, chart));
+        }
         
-        bottomBar.getChildren().addAll( timeArray);
+        bottomBar.getChildren().addAll( timeArray, candleTimeArray);
 
         VBox.setVgrow(chart, Priority.ALWAYS);
 

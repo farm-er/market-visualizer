@@ -1,7 +1,6 @@
 package com.oussama;
 
 import com.oussama.marketvisualizer.MarketVisualizer;
-import com.oussama.marketvisualizer.components.CandlestickChartContainer;
 
 /**
  * Main class to launch the Market Visualizer Application
