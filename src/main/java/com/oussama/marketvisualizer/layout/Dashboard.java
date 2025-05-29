@@ -47,6 +47,10 @@ public class Dashboard {
     private final Color accentColor = Color.web("#ff9900");
     private final Color textColor = Color.web("#ffffff");
     
+    // STYLES
+    public static final String unSelectedButtonStyle = "-fx-background-color: transparent;-fx-text-fill: white;-fx-font-weight: bold;-fx-padding: 5 10 5 10;";
+    public static final String selectedButtonStyle = "-fx-background-color: #333333;-fx-text-fill: #ff9900;-fx-font-weight: bold;-fx-padding: 5 10 5 10;";
+
     /**
      * Constructs the dashboard and initializes all layout components
      */

@@ -21,17 +21,21 @@ public class Header extends HBox {
     private final Color accentColor = Color.web("#ff9900");
     private final Color textColor = Color.web("#ffffff");
 
+
+    // STYLES
+    private final String mainStyle = "-fx-height: 10;-fx-background-color: transparent;-fx-border-width: 0 0 2 0;-fx-border-color: #555;-fx-border-style: solid;";
+    private final String searchContainerStyle = "-fx-background-color: transparent;-fx-padding: 5 0 5 0;";
+    private final String searchIconStyle = "-fx-padding: 5;";
+    private final String hoveredSearchIconStyle = "-fx-background-color: #aaaa00;-fx-padding: 5;-fx-background-color: transparent;";
+    private final String searchFieldStyle = "-fx-text-fill: #FFFF00;-fx-background-color: #000;-fx-padding: 5 20 5 20;-fx-border-width: 0;";
+    private final String hoveredSearchFieldStyle = searchFieldStyle + "-fx-padding: 5 20 5 20;-fx-border-width: 1;-fx-border-radius: 5;-fx-border-style: solid;-fx-border-color: #555;";
+    
+
     public Header() {
 
         this.setPadding(new Insets(0, 20, 0, 20));
         this.setSpacing(50);
-        this.setStyle(
-            "-fx-height: 10;"+
-            "-fx-background-color: transparent;"+
-            "-fx-border-width: 0 0 2 0;"+
-            "-fx-border-color: #555;"+
-            "-fx-border-style: solid;"
-        );
+        this.setStyle( mainStyle);
         this.setAlignment(Pos.CENTER);
         
         // Logo from resources
@@ -80,37 +84,42 @@ public class Header extends HBox {
         // Search bar
         HBox searchContainer = new HBox();
         searchContainer.setAlignment(Pos.CENTER);
-        searchContainer.setStyle(
-            "-fx-background-color: transparent;"+
-            "-fx-padding: 5 0 5 0;"
-        );
+        searchContainer.setSpacing( 10);
+        searchContainer.setStyle( searchContainerStyle);
         
         // Search icon (using a text label as placeholder, could be replaced with an actual icon)
         Label searchIcon = new Label("🔍");
         searchIcon.setTextFill(Color.WHITE);
+        searchIcon.setStyle( searchIconStyle);
+
+        searchIcon.setOnMouseEntered( e -> {
+            searchIcon.setStyle( hoveredSearchIconStyle);
+        });
+
+        searchIcon.setOnMouseExited( e -> {
+            searchIcon.setStyle( searchIconStyle);
+        });
         
         javafx.scene.control.TextField searchField = new javafx.scene.control.TextField();
         searchField.setPrefWidth(200);
         searchField.setPromptText("Search assets");
-        searchField.setStyle(
-            "-fx-background-color: #000;"+
-            "-fx-padding: 5 20 5 20;" +
-            "-fx-color: #555;"
-        );
-        searchField.setOnMouseEntered(e -> searchField.setStyle(
-            searchField.getStyle()+
-            "-fx-padding: 4 20 4 20;" +
-            "-fx-border-width: 1;"+
-            "-fx-border-radius: 5;"+
-            "-fx-border-style: solid;"+
-            "-fx-border-color: #555;"
-        ));
+        searchField.setStyle( searchFieldStyle);
+        searchField.setOnMouseEntered(e -> {
+            searchField.setStyle( hoveredSearchFieldStyle);
+            // CHANGING  THE PADDING OF THE CONTAINER TO AVOID THE HEIGHT CHANGE OF THE HEADER
+            searchContainer.setStyle(
+                "-fx-background-color: transparent;"+
+                "-fx-padding: 4 0 4 0;"
+            );
+        });
 
-        searchField.setOnMouseExited(e -> searchField.setStyle(
-            "-fx-background-color: #000;"+
-            "-fx-padding: 5 20 5 20;" +
-            "-fx-color: #555;"
-        ));
+        searchField.setOnMouseExited(e -> {
+            searchField.setStyle( searchFieldStyle);
+            searchContainer.setStyle(
+                "-fx-background-color: transparent;"+
+                "-fx-padding: 5 0 5 0;"
+            );
+        });
         
         
         searchContainer.getChildren().addAll(searchIcon, searchField);

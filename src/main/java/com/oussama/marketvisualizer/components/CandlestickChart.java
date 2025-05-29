@@ -5,6 +5,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.util.StringConverter;
 import javafx.scene.Scene;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.CategoryAxis;
@@ -24,40 +25,51 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.json.JSONObject;
 
+import com.oussama.Main;
 import com.oussama.marketvisualizer.models.CandleData;
 
 public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number> {
+    
     /*
      * 
      * PUBLIC FUNCTION
      * 
-     * I WIILL CALL IT THE API OF THIS CLASS 
+     * I WILL CALL IT THE API OF THIS CLASS 
      * 
      */
 
     public void setTimeRange( String t) {
         timeRange = t;
+        setData();
     }
 
     public void setSymbol( String s) {
         symbol = s;
+        setData();
     }
 
     public void setCandleTimeRange( String t) {
         candleTimeRange = t;
+        setData();
     }
 
     /*
@@ -71,103 +83,210 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         super(new CategoryAxis(), new NumberAxis());
 
         setLegendVisible(false);
-        setTimeRange( tr);
-        setCandleTimeRange( ctr);
-        setSymbol(symb);
+        this.timeRange = tr;
+        this.candleTimeRange = ctr;
+        this.symbol = symb;
 
-        Axis<String> xAxis = getXAxis();
-        Axis<Number> yAxis = getYAxis();
+        CategoryAxis xAxis = (CategoryAxis) getXAxis();
+        NumberAxis yAxis = (NumberAxis) getYAxis();
 
         xAxis.setLabel("");
         xAxis.setTickMarkVisible(false);
+        xAxis.setTickLabelRotation( 0);
 
         yAxis.setLabel("");
         yAxis.setTickMarkVisible(false);
         yAxis.setSide(javafx.geometry.Side.RIGHT);
 
-        storeData();
-        layoutPlotChildren();
+
+        // LAUNCH FETCHING FOR ALL KINDS OF DATA ( DAILY, WEEKLY, MONTHLY)
+
+        // GETTING DATA AS JSON OJBJECT
+
+
+        // TODO: store data in cache return file name
+        // TODO: create an entry for the data in the database
+        getNewData();
+        setData();
     }
 
-    public void setData(List<CandleData> candleDataList) {
-        ObservableList<Series<String, Number>> data = FXCollections.observableArrayList();
-        Series<String, Number> series = new Series<>();
-        
-        for (CandleData cd : candleDataList) {
-            Data<String, Number> item = new Data<>(cd.getTimeLabel(), cd.getClose());
-            item.setExtraValue(cd);
-            series.getData().add(item);
-        }
-        
-        data.add(series);
-        setData(data);
+
+    private void initializeEmptyChart() {
+        ObservableList<Series<String, Number>> emptyData = FXCollections.observableArrayList();
+        Series<String, Number> emptySeries = new Series<>();
+        emptySeries.setName("Loading " + symbol + "...");
+        emptyData.add(emptySeries);
+        this.setData(emptyData);
     }
 
-    private void storeData() {
 
-        // XYChart.Series<String, Number> series = new XYChart.Series<>();
-        
-        if (timeRange == null) {
-            System.err.println("Warning: timeRange is null");
-            this.setData(new ArrayList<>());
-            return;
-        }
-    
-
-        List<CandleData> candleDataList = new ArrayList<>();
-        String apiKey = "2G59I82BETK10186";
+    /*
+     * 
+     * 
+     * PRIVATE METHODS
+     * 
+     */
 
 
-        switch (timeRange) {
-            case "1M":
-                candleDataList = fetchMonthData(apiKey, "2009", "01");
-                break;
+     /**
+      * this function fetch the data and process the json to candle list and updates the raw data attributs and then it sorts them
+      */
+    private void getNewData() {
 
-            // case "1M":
-            //     candleDataList = fetchData("1month");
-            //     break;
-        
-            // case "3M":
-            //     candleDataList = fetchData("30min");         
-            //     break;
-            
-            // case "6M":
-            //     candleDataList = fetchData("60min");
-            //     break;
-            
-            // case "1Y":
-            //     candleDataList = fetchData("1day");
-            //     break;
-
-            default:
-                break;
-        }
-
-        if (candleDataList != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            candleDataList.sort(Comparator.comparing(c -> LocalDate.parse(c.getTimeLabel(), formatter)));
-            this.setData(candleDataList);
-        } else {
-            this.setData(new ArrayList<>());
-        }
-
-    }
-    
-    private List<CandleData> fetchMonthData(String apiKey, String year, String month) {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         try {
 
-            List<CandleData> candleDataList = new ArrayList<>();
+            CompletableFuture<List<CandleData>> dailyFuture = CompletableFuture.supplyAsync( () -> {
+                    JSONObject dailyData = fetchData("json", "all", "DAILY");
+                    return processJSON( dailyData);
+                } 
+            );
+            CompletableFuture<List<CandleData>> weeklyFuture = CompletableFuture.supplyAsync( () -> {
+                    JSONObject weeklyData = fetchData("json", "all", "WEEKLY");
+                    return processJSON( weeklyData);
+                } 
+            );
+            CompletableFuture<List<CandleData>> monthlyFuture = CompletableFuture.supplyAsync( () -> { 
+                    JSONObject monthlyData = fetchData("json", "all", "MONTHLY");
+                    return processJSON( monthlyData);
+                }
+            );
 
-            String apiUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&apikey=" + apiKey;
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                dailyFuture, weeklyFuture, monthlyFuture);
+            allFutures.get();
+
+            rawDailyData = dailyFuture.get();
+            rawWeeklyData = weeklyFuture.get();
+            rawMonthlyData = monthlyFuture.get();
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            rawDailyData.sort(Comparator.comparing(c -> LocalDate.parse(c.getTimeLabel(), formatter)));
+            rawWeeklyData.sort(Comparator.comparing(c -> LocalDate.parse(c.getTimeLabel(), formatter)));
+            rawMonthlyData.sort(Comparator.comparing(c -> LocalDate.parse(c.getTimeLabel(), formatter)));
+        
+        } catch ( InterruptedException | ExecutionException e) {
+            // TODO: handle errors
+            System.out.println(e);
+        } finally {
+            // TODO: I might add some post operations
+        }
+
+    }
+
+
+    /**
+      * this function updates the data that will be drawn to the chart based on the selected parameters ( time range, candle time range)
+      */
+    private void setData() {
+
+        if (timeRange == null || timeRange.isEmpty()) {
+            System.out.println("Time range is null or empty, skipping data load.");
+            return;
+        }
+
+        List<CandleData> candleDataList;
+
+        System.out.println("selected time range is "+candleTimeRange);
+        // POPULATE DATA BASED ON THE TIME RANGE
+        switch (candleTimeRange) {
+            case "DAILY":
+                candleDataList = rawDailyData;
+                break;
+            case "WEEKLY":
+                candleDataList = rawWeeklyData;
+                break;
+            case "MONTHLY":
+                candleDataList = rawMonthlyData;
+                break;
+            default:
+                candleDataList = new ArrayList<>();
+                break;
+        }
+
+        System.out.println("populated data with size "+ candleDataList.size());
+
+        // TODO: need to limit the data the requested time range 
+
+        LocalDate start = LocalDate.now().minusYears(1).minusMonths( Integer.parseInt( timeRange.replace( "M", "")));
+        LocalDate end = LocalDate.now().minusYears(1);
+
+        ObservableList<Series<String, Number>> data = FXCollections.observableArrayList();
+        Series<String, Number> series = new Series<>();
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (CandleData cd : candleDataList) {
+            LocalDate candleDate = LocalDate.parse(cd.getTimeLabel(), formatter);
+
+            if (candleDate.isAfter(start) && candleDate.isBefore(end)) {
+                Data<String, Number> item = new Data<>(cd.getTimeLabel(), cd.getClose());
+                item.setExtraValue(cd);
+                series.getData().add(item);
+            }
+
+        }
+        
+        System.out.println("adding data to series ");
+
+        data.add(series);
+        setData(data);
+
+    }
+    
+    public static String readResourceFile(String filename) {
+        ClassLoader classLoader = Main.class.getClassLoader();
+        try (InputStream is = classLoader.getResourceAsStream(filename)) {
+            if (is == null) {
+                throw new IllegalArgumentException("File not found: " + filename);
+            }
+            Scanner scanner = new Scanner(is, StandardCharsets.UTF_8.name());
+            return scanner.useDelimiter("\\A").next();  // Read entire content
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private JSONObject fetchData( String dataType, String option, String requestedTimeRange) {
+
+        if (requestedTimeRange.equals("DAILY")) {
+            String json = readResourceFile("ibm_daily.json");
+            return new JSONObject(json);
+        }
+        if (requestedTimeRange.equals("WEEKLY")) {
+            String json = readResourceFile("ibm_weekly.json");
+            return new JSONObject(json);
+        }
+        if (requestedTimeRange.equals("MONTHLY")) {
+            String json = readResourceFile("ibm_monthly.json");
+            return new JSONObject(json);
+        }
+
+
+        String apiKey = "SNATUCE87YJU1E7S";
+        List<CandleData> candleDataList = new ArrayList<>();
+
+        String apiUrl;
+
+        if ( option == "all") {
+            apiUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_" + requestedTimeRange +"&symbol=" + symbol + "&outputsize=full&datatype=" + dataType +"&apikey=" + apiKey;
             System.out.println( apiUrl);
-            
+        } else {
+            apiUrl = "https://www.alphavantage.co/query?function=TIME_SERIES_" + candleTimeRange +"&symbol=" + symbol + "&datatype=" + dataType +"&apikey=" + apiKey;
+        }
+
+        // HANDLE ALL EXCEPTIONS
+        // url
+        // io
+        try {
+
+            System.out.println( apiUrl);
             URL url = new URL(apiUrl);
 
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-            connection.setConnectTimeout(10000); // 10 seconds timeout
-            connection.setReadTimeout(10000);
             
             int responseCode = connection.getResponseCode();
 
@@ -182,37 +301,10 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
 
                 JSONObject jsonResponse = new JSONObject(response.toString());
 
+                // TODO: check for errors
+                System.out.println(jsonResponse.toString());
 
-                if (jsonResponse.has("Error Message")) {
-                    throw new IOException("API Error: " + jsonResponse.getString("Error Message"));
-                }
-
-                JSONObject timeSeries = jsonResponse.getJSONObject("Time Series (Daily)");
-
-                for (Object timestampObj : timeSeries.keySet()) {
-                    
-                    String timestamp = (String) timestampObj;
-                    
-                    JSONObject candleData = timeSeries.getJSONObject(timestamp);
-                    
-                    // Extract OHLCV data
-                    double open = Double.parseDouble(candleData.getString("1. open"));
-                    double high = Double.parseDouble(candleData.getString("2. high"));
-                    double low = Double.parseDouble(candleData.getString("3. low"));
-                    double close = Double.parseDouble(candleData.getString("4. close"));
-                    long volume = Long.parseLong(candleData.getString("5. volume"));
-                    
-                    // Format the timestamp for display
-                    DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                    LocalDate dateTime = LocalDate.parse(timestamp, inputFormatter);
-                    String timeLabel = dateTime.format(inputFormatter);
-                    
-                    // Create and add CandleData
-                    candleDataList.add(new CandleData(timeLabel, open, high, low, close, volume));
-                }
-
-
-                return candleDataList;
+                return jsonResponse;
             } else {
                 throw new IOException("HTTP Error: " + responseCode);
             }
@@ -246,7 +338,7 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
                 double lowY = getYAxis().getDisplayPosition(cd.getLow());
                 
                 // Calculate width
-                double width=getWidth()/30-2;
+                double width=7;
                 // double width=getWidth()/1440;
 
                 // Draw candle body (rectangle)
@@ -277,6 +369,10 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
                 if (cd.getLow()<min) {
                     min = cd.getLow();
                 }
+                }
+            ObservableList<Axis.TickMark<String>> tickMarks = getXAxis().getTickMarks();
+            for (int i = 0; i < tickMarks.size(); i++) {
+                tickMarks.get(i).setTextVisible(i % 5 == 0);
             }
         }
 
@@ -312,6 +408,39 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         });
     }
     
+
+    private List<CandleData> processJSON( JSONObject jsonData) {
+
+        List<CandleData> candleDataList = new ArrayList<>();
+        for ( Object k: jsonData.keySet()) {
+            if ( !k.toString().equals("Meta Data")) {
+                
+                JSONObject data = jsonData.getJSONObject( k.toString());
+
+                for (Object timestamp : data.keySet()) {
+            
+                    JSONObject candleData = data.getJSONObject(timestamp.toString());
+                    
+                    // Extract OHLCV data
+                    double open = Double.parseDouble(candleData.getString("1. open"));
+                    double high = Double.parseDouble(candleData.getString("2. high"));
+                    double low = Double.parseDouble(candleData.getString("3. low"));
+                    double close = Double.parseDouble(candleData.getString("4. close"));
+                    long volume = Long.parseLong(candleData.getString("5. volume"));
+                    
+                    // Format the timestamp for display
+                    DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    LocalDate dateTime = LocalDate.parse(timestamp.toString(), inputFormatter);
+                    String timeLabel = dateTime.format(inputFormatter);
+                    
+                    // Create and add CandleData
+                    candleDataList.add(new CandleData(timeLabel, open, high, low, close, volume));
+                }
+            }
+        }
+        return candleDataList;
+    }
+
     @Override
     protected void dataItemChanged(Data<String, Number> item) {}
     
@@ -339,10 +468,14 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
     private final String UP_COLOR = "#26A69A";
     private final String DOWN_COLOR = "#EF5350";
 
-    private final Random random = new Random();
-
     private String timeRange;
     private String  candleTimeRange;
     private String symbol;
 
+    private List<CandleData> rawDailyData;
+    private List<CandleData> rawWeeklyData;
+    private List<CandleData> rawMonthlyData;
+
 }
+
+
