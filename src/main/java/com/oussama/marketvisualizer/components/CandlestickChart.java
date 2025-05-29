@@ -262,7 +262,7 @@ public class CandlestickChart extends javafx.scene.chart.XYChart<String, Number>
         if (requestedTimeRange.equals("MONTHLY")) {
             String json = readResourceFile("ibm_monthly.json");
             return new JSONObject(json);
-        }
+        }                                                                                                                                                                       
 
 
         String apiKey = "SNATUCE87YJU1E7S";
