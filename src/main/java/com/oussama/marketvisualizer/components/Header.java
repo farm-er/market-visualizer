@@ -10,6 +10,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -24,12 +25,6 @@ public class Header extends HBox {
 
     // STYLES
     private final String mainStyle = "-fx-height: 10;-fx-background-color: transparent;-fx-border-width: 0 0 2 0;-fx-border-color: #555;-fx-border-style: solid;";
-    private final String searchContainerStyle = "-fx-background-color: transparent;-fx-padding: 5 0 5 0;";
-    private final String searchIconStyle = "-fx-padding: 5;";
-    private final String hoveredSearchIconStyle = "-fx-background-color: #aaaa00;-fx-padding: 5;-fx-background-color: transparent;";
-    private final String searchFieldStyle = "-fx-text-fill: #FFFF00;-fx-background-color: #000;-fx-padding: 5 20 5 20;-fx-border-width: 0;";
-    private final String hoveredSearchFieldStyle = searchFieldStyle + "-fx-padding: 5 20 5 20;-fx-border-width: 1;-fx-border-radius: 5;-fx-border-style: solid;-fx-border-color: #555;";
-    
 
     public Header() {
 
@@ -55,12 +50,6 @@ public class Header extends HBox {
 
             logoView.setFitHeight(30);
 
-            // // If using a high-DPI display, adjust for that
-            // double scaleFactor = javafx.stage.Screen.getPrimary().getOutputScaleX();
-            // if (scaleFactor > 1.0) {
-            //     // For high DPI displays, use slightly larger size
-            //     logoView.setFitHeight(30 * scaleFactor);
-            // }
             logoContainer.getChildren().add(logoView);
         } catch (Exception e) {
             // Fallback if logo loading fails
@@ -71,58 +60,6 @@ public class Header extends HBox {
             System.err.println("Could not load logo: " + e.getMessage());
         }
         
-        // Navigation buttons
-        HBox navButtons = new HBox();
-        navButtons.setSpacing(15);
-        navButtons.setAlignment(Pos.CENTER_LEFT);
-        
-        Button dashboardBtn = createNavButton("DASHBOARD");
-        Button settingsBtn = createNavButton("SETTINGS");
-        
-        navButtons.getChildren().addAll( logoContainer, dashboardBtn, settingsBtn);
-        
-        // Search bar
-        HBox searchContainer = new HBox();
-        searchContainer.setAlignment(Pos.CENTER);
-        searchContainer.setSpacing( 10);
-        searchContainer.setStyle( searchContainerStyle);
-        
-        // Search icon (using a text label as placeholder, could be replaced with an actual icon)
-        Label searchIcon = new Label("🔍");
-        searchIcon.setTextFill(Color.WHITE);
-        searchIcon.setStyle( searchIconStyle);
-
-        searchIcon.setOnMouseEntered( e -> {
-            searchIcon.setStyle( hoveredSearchIconStyle);
-        });
-
-        searchIcon.setOnMouseExited( e -> {
-            searchIcon.setStyle( searchIconStyle);
-        });
-        
-        javafx.scene.control.TextField searchField = new javafx.scene.control.TextField();
-        searchField.setPrefWidth(200);
-        searchField.setPromptText("Search assets");
-        searchField.setStyle( searchFieldStyle);
-        searchField.setOnMouseEntered(e -> {
-            searchField.setStyle( hoveredSearchFieldStyle);
-            // CHANGING  THE PADDING OF THE CONTAINER TO AVOID THE HEIGHT CHANGE OF THE HEADER
-            searchContainer.setStyle(
-                "-fx-background-color: transparent;"+
-                "-fx-padding: 4 0 4 0;"
-            );
-        });
-
-        searchField.setOnMouseExited(e -> {
-            searchField.setStyle( searchFieldStyle);
-            searchContainer.setStyle(
-                "-fx-background-color: transparent;"+
-                "-fx-padding: 5 0 5 0;"
-            );
-        });
-        
-        
-        searchContainer.getChildren().addAll(searchIcon, searchField);
         
         // Controls on the right (time, watchlist dropdown)
         HBox controls = new HBox();
@@ -149,26 +86,14 @@ public class Header extends HBox {
             }
         }, 0, 1000);
         
-        // Watchlist dropdown
-        ComboBox<String> watchlistSelector = new ComboBox<>();
-        watchlistSelector.getItems().addAll(
-            "Default Watchlist",
-            "DeFi Tokens",
-            "NFT Projects",
-            "Layer 2 Solutions",
-            "New Listings"
-        );
-        watchlistSelector.setValue("Default Watchlist");
-        watchlistSelector.setStyle("-fx-background-color: #333333; -fx-text-fill: white;");
         
         // Add components to controls
-        controls.getChildren().addAll(timeLabel, watchlistSelector);
-        
-        HBox.setHgrow(navButtons, Priority.ALWAYS);
-        HBox.setHgrow(searchContainer, Priority.ALWAYS);
-        HBox.setHgrow(controls, Priority.ALWAYS);
+        controls.getChildren().addAll(timeLabel);
 
-        this.getChildren().addAll(navButtons, searchContainer, controls);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS); 
+        
+        this.getChildren().addAll( logoContainer, spacer, controls);
     }
  
     /**

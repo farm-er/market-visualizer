@@ -8,12 +8,18 @@
     -fx-background-color: transparent;
 }
 
-.chart-horizontal-grid-lines, .chart-vertical-grid-lines {
+.chart-horizontal-grid-lines {
     -fx-stroke: #201e19;
     -fx-stroke-dash-array: none;
     -fx-stroke-width: 1px;
 }
 
+
+.chart-vertical-grid-lines {
+    -fx-stroke: transparent;
+    -fx-stroke-dash-array: none;
+    -fx-stroke-width: 0;
+}
 
 
 .axis {
@@ -33,3 +39,4 @@
 .axis .axis-line {
     -fx-stroke: transparent;
 }
+
